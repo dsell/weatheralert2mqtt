@@ -1,0 +1,10 @@
+Requires:
+
+sudo pip install weatheralerts
+sudo pip install config
+sudo apt-add-repository ppa:mosquitto-dev/mosquitto-ppa
+sudo apt-get update
+sudo apt-get install python-mosquitto
+cp .weatheralerts2mqtt.conf ~/
+
+
