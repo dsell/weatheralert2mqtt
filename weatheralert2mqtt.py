@@ -36,7 +36,7 @@ MQTT_TIMEOUT = 60	#seconds
 
 #read in configuration file
 homedir = os.path.expanduser("~")
-f = file(homedir + '.weatheralert2mqtt.conf')
+f = file(homedir + '/.weatheralert2mqtt.conf')
 cfg = Config(f)
 MQTT_HOST = cfg.MQTT_HOST
 MQTT_PORT = cfg.MQTT_PORT
