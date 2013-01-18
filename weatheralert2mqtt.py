@@ -22,10 +22,11 @@ import signal
 import threading
 from config import Config
 from weatheralerts import nws
+import commands
 
 
 CLIENT_NAME = "weatheralert2mqtt"
-CLIENT_VERSION = "0.4"
+CLIENT_VERSION = "0.6"
 MQTT_TIMEOUT = 60	#seconds
 
 
@@ -57,8 +58,11 @@ def on_connect(self, obj, rc):
 
 	mqtt_connected = True
 	print "MQTT Connected"
-	mqttc.publish( CLIENT_TOPIC + "status" , "running", 1, 1 )
+	mqttc.publish( CLIENT_TOPIC + "status" , "online", 1, 1 )
 	mqttc.publish( CLIENT_TOPIC + "version", CLIENT_VERSION, 1, 1 )
+	ip = commands.getoutput("/sbin/ifconfig").split("\n")[1].split()[1][5:]
+	mqttc.publish( CLIENT_TOPIC + "ip", ip, 1, 1 )
+	mqttc.publish( CLIENT_TOPIC + "pid", os.getpid(), 1, 1 )
 	mqttc.subscribe( CLIENT_TOPIC + "ping", 2)
 
 
@@ -77,9 +81,8 @@ def do_weatheralert_loop():
 					alerts.activefor_county(location)
 					result = alerts.activefor_county(location)
 					mqttc.publish( BASE_TOPIC + req_state + "/" + req_county + "/alert", str(result), qos = 2, retain = 1 )
-				except KeyboardInterrupt:
-					print u"  ........Exiting."
-					sys.exit()
+				except:
+					print "error in weatheralerts."
 
 				mqttc.publish( BASE_TOPIC + req_state + "/" + req_county + "/time", time.strftime( "%x %X" ), qos = 2, retain = 1)
 			if ( INTERVAL ):
@@ -96,7 +99,7 @@ def mqtt_connect():
 	rc = 1
 	while ( rc ):
 		print "Attempting connection..."
-		mqttc.will_set(CLIENT_TOPIC + "status", "disconnected_", 1, 1)
+		mqttc.will_set(CLIENT_TOPIC + "status", "disconnected", 1, 1)
 
 		#define the mqtt callbacks
 		mqttc.on_message = on_message
@@ -119,10 +122,12 @@ def on_message(self, obj, msg):
 
 
 def do_disconnect():
-       global connected
-       mqttc.disconnect()
-       connected = 0
-       print "Disconnected"
+		global connected
+		mqttc.disconnect()
+		connected = 0
+		print "Disconnected"
+		mqttc.publish ( "/clients/" + CLIENT_NAME + "/status" , "offline", 1, 1 )
+
 
 #TODO are these redundant?????????????
 
