@@ -53,6 +53,7 @@ class MyMQTTClientCore(MQTTClientCore):
             except:
                 print "Unknown command"
 
+#TODO change to detect and announce changes in alert status!!!!!!!
     def do_thread_loop(self):
         alerts = nws.Alerts()
         while ( self.running ):
@@ -60,10 +61,9 @@ class MyMQTTClientCore(MQTTClientCore):
 			    for location in self.counties:
 				    print "Querrying for ", location.county, " county ", location.state
 				    try:
-#qos set wrong!!! broken TODO	
-                        result = "Failed to retreive"
-					    result = alerts.activefor_county(location)
-					    self.mqttc.publish( self.basetopic + location.state + "/" + location.county + "/alert", str(result), qos = 0, retain = 1 )
+                                        result = "Failed to retreive"
+                                        result = alerts.activefor_county(location)
+                                        self.mqttc.publish( self.basetopic + location.state + "/" + location.county + "/alert", str(result), qos = 0, retain = 1 )
 				    except:
 					    print "error in weatheralerts."
 				    self.mqttc.publish( self.basetopic + location.state + "/" + location.county + "/time", time.strftime( "%x %X" ), qos = 0, retain = 1)
