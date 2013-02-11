@@ -30,7 +30,6 @@ class MyMQTTClientCore(MQTTClientCore):
         MQTTClientCore.__init__(self, appname, clienttype)
         self.clientversion = VERSION
         self.watchtopic = WATCHTOPIC
-        self.workingdir = self.cfg.WORKINGDIR
         self.counties = self.cfg.COUNTIES
         self.interval = self.cfg.INTERVAL
         self.basetopic = self.cfg.BASE_TOPIC
