@@ -30,9 +30,10 @@ class MQTTClientCore:
 
     """
     def __init__(self, appname, clienttype, clean_session=True):
-        self.connectcount = 0
         self.running = True
+        self.connectcount = 0
         self.starttime=datetime.datetime.now()
+        self.connecttime=0 #datetime.datetime.now()
         self.mqtt_connected = False
         self.clienttype = clienttype
         self.clean_session = clean_session
@@ -69,7 +70,8 @@ class MQTTClientCore:
                     self.cfg = Config('/etc/mqttclients/mqtt.conf')
                 except:
                     print "Config file not found."
-# could add another try and exit if no config found  TODO
+                    sys.exit(99)
+
         self.mqtthost = self.cfg.MQTT_HOST
         self.mqttport = self.cfg.MQTT_PORT
         self.mqtttimeout = 60  # get from config file  TODO
@@ -118,12 +120,14 @@ class MQTTClientCore:
         self.mqttc.publish(self.clientbase + "pid", os.getpid(), qos=1, retain=self.persist)
         self.mqttc.publish(self.clientbase + "status", "online", qos=1, retain=self.persist)
         self.mqttc.publish(self.clientbase + "start", str(self.starttime), qos=1, retain=self.persist)
+        self.mqttc.publish(self.clientbase + "connecttime", str(self.connecttime), qos=1, retain=self.persist)
         self.mqttc.publish(self.clientbase + "count", self.connectcount, qos=1, retain=self.persist)
 
     #define what happens after connection
     def on_connect(self, mself, obj, rc):
         self.mqtt_connected = True
         self.connectcount = self.connectcount+1
+        self.connecttime=datetime.datetime.now()
         print "MQTT Connected"
         logging.info("MQTT connected")
         self.mqttc.subscribe(self.clientbase + "ping", qos=2)
@@ -203,16 +207,16 @@ class MQTTClientCore:
 
     def main_loop(self):
         self.mqtt_connect()
-        self.mqttc.loop(10)
+        self.mqttc.loop()
         while True:
             if ( self.mqtt_connected ):
-                rc = self.mqttc.loop(10)
+                rc = self.mqttc.loop()
                 if rc != 0:
                     self.mqtt_connected = False
                     print "Stalling for 5 seconds to allow broker connection to time out."
                     time.sleep(5)
                     self.mqtt_connect()
-                    self.mqttc.loop(10)
+                    self.mqttc.loop()
 
 
 def main(daemon):
