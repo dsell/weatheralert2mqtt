@@ -57,7 +57,7 @@ class MyMQTTClientCore(MQTTClientCore):
         alerts = nws.Alerts()
         while ( self.running ):
 		    if ( self.mqtt_connected ):
-			    for location in self.counties:
+                for location in self.counties:
 				    print "Querrying for ", location.county, " county ", location.state
 				    try:
                                         result = "Failed to retreive"
@@ -66,7 +66,7 @@ class MyMQTTClientCore(MQTTClientCore):
 				    except:
 					    print "error in weatheralerts."
 				    self.mqttc.publish( self.basetopic + location.state + "/" + location.county + "/time", time.strftime( "%x %X" ), qos = 0, retain = 1)
-               if ( self.interval ):
+                if ( self.interval ):
                     print "Waiting ", self.interval, " minutes for next update."
                     time.sleep(self.interval*60)
 		    pass
