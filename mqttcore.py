@@ -33,7 +33,8 @@ class MQTTClientCore:
         self.running = True
         self.connectcount = 0
         self.starttime=datetime.datetime.now()
-        self.connecttime=0 #datetime.datetime.now()
+        self.connecttime=0 
+        self.disconnecttime=0 
         self.mqtt_connected = False
         self.clienttype = clienttype
         self.clean_session = clean_session
@@ -120,6 +121,7 @@ class MQTTClientCore:
         self.mqttc.publish(self.clientbase + "pid", os.getpid(), qos=1, retain=self.persist)
         self.mqttc.publish(self.clientbase + "status", "online", qos=1, retain=self.persist)
         self.mqttc.publish(self.clientbase + "start", str(self.starttime), qos=1, retain=self.persist)
+        self.mqttc.publish(self.clientbase + "disconnecttime", str(self.disconnecttime), qos=1, retain=self.persist)
         self.mqttc.publish(self.clientbase + "connecttime", str(self.connecttime), qos=1, retain=self.persist)
         self.mqttc.publish(self.clientbase + "count", self.connectcount, qos=1, retain=self.persist)
 
@@ -135,7 +137,7 @@ class MQTTClientCore:
         self.identify()
 
     def on_disconnect( self, mself, obj, rc ):
-        pass
+        self.disconnecttime=datetime.datetime.now()
 
     #On recipt of a message create a pynotification and show it
     def on_message( self, mself, obj, msg):

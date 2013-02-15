@@ -13,7 +13,7 @@ __copyright__ = "Copyright (C) Dennis Sell"
 
 
 APPNAME = "weatheralert2mqtt"
-VERSION = "0.7"
+VERSION = "0.10"
 WATCHTOPIC = "/raw/" + APPNAME + "/command"
 
 
@@ -34,8 +34,8 @@ class MyMQTTClientCore(MQTTClientCore):
         self.interval = self.cfg.INTERVAL
         self.basetopic = self.cfg.BASE_TOPIC
     
-        t = threading.Thread(target=self.do_thread_loop)
-        t.start()
+        self.t = threading.Thread(target=self.do_thread_loop)
+        self.t.start()
 
     def on_connect(self, mself, obj, rc):
         MQTTClientCore.on_connect(self, mself, obj, rc)
@@ -66,12 +66,9 @@ class MyMQTTClientCore(MQTTClientCore):
 				    except:
 					    print "error in weatheralerts."
 				    self.mqttc.publish( self.basetopic + location.state + "/" + location.county + "/time", time.strftime( "%x %X" ), qos = 0, retain = 1)
-			    if ( self.interval ):
-				    print "Waiting ", self.interval, " minutes for next update."
-				    time.sleep(60 * self.interval)
-			    else:
-				    self.running = False	#do a single shot
-				    print "Querries complete."
+               if ( self.interval ):
+                    print "Waiting ", self.interval, " minutes for next update."
+                    time.sleep(self.interval*60)
 		    pass
 
 
