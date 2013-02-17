@@ -41,17 +41,6 @@ class MyMQTTClientCore(MQTTClientCore):
         MQTTClientCore.on_connect(self, mself, obj, rc)
         self.mqttc.subscribe(self.watchtopic, qos=2)
 
-    def on_message(self, mself, obj, msg):
-        MQTTClientCore.on_message(self, mself, obj, msg)
-        if (msg.topic == self.watchtopic):
-            try:
-                print msg.payload
-                filename = self.workingdir + msg.payload + ".mp3"
-                pid = subprocess.Popen('mplayer -softvol ' +
-                                        filename, shell=True).pid
-            except:
-                print "Unknown command"
-
 #TODO change to detect and announce changes in alert status!!!!!!!
     def do_thread_loop(self):
         alerts = nws.Alerts()
@@ -60,9 +49,9 @@ class MyMQTTClientCore(MQTTClientCore):
                 for location in self.counties:
 				    print "Querrying for ", location.county, " county ", location.state
 				    try:
-                                        result = "Failed to retreive"
-                                        result = alerts.activefor_county(location)
-                                        self.mqttc.publish( self.basetopic + location.state + "/" + location.county + "/alert", str(result), qos = 0, retain = 1 )
+                        result = "Failed to retreive"
+                        result = alerts.activefor_county(location)
+                        self.mqttc.publish( self.basetopic + location.state + "/" + location.county + "/alert", str(result), qos = 0, retain = 1 )
 				    except:
 					    print "error in weatheralerts."
 				    self.mqttc.publish( self.basetopic + location.state + "/" + location.county + "/time", time.strftime( "%x %X" ), qos = 0, retain = 1)
