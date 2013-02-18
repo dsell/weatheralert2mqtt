@@ -45,7 +45,7 @@ class MyMQTTClientCore(MQTTClientCore):
     def do_thread_loop(self):
         alerts = nws.Alerts()
         while ( self.running ):
-		    if ( self.mqtt_connected ):
+            if ( self.mqtt_connected ):
                 for location in self.counties:
 				    print "Querrying for ", location.county, " county ", location.state
 				    try:
