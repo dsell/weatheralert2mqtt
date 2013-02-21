@@ -51,10 +51,10 @@ class MyMQTTClientCore(MQTTClientCore):
                     try:
                         result = "Failed to retreive"
                         result = alerts.activefor_county(location)
-                        self.mqttc.publish( self.basetopic + location.state + "/" + location.county + "/alert", str(result), qos = 0, retain = 1 )
+                        self.mqttc.publish( self.basetopic + location.state + "/" + location.county + "/alert", str(result), qos = 0, retain = True )
+                        self.mqttc.publish( self.basetopic + location.state + "/" + location.county + "/time", time.strftime( "%x %X" ), qos = 0, retain = True)
                     except:
                         print "error in weatheralerts."
-                        self.mqttc.publish( self.basetopic + location.state + "/" + location.county + "/time", time.strftime( "%x %X" ), qos = 0, retain = 1)
                 if ( self.interval ):
                     print "Waiting ", self.interval, " minutes for next update."
                     time.sleep(self.interval*60)
