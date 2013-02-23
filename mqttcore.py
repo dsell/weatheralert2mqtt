@@ -22,7 +22,10 @@ import logging
 import signal
 from config import Config
 import datetime
+from daemon import daemon_version
 
+
+COREVERSION = 0.3
 
 class MQTTClientCore:
     """
@@ -39,6 +42,7 @@ class MQTTClientCore:
         self.clienttype = clienttype
         self.clean_session = clean_session
         self.clientversion = "unknown"
+        self.coreversion = COREVERSION
         homedir = os.path.expanduser("~")
         self.configfile = homedir + "/." + appname + '.conf'
         self.mqtttimeout = 60    # seconds
@@ -82,12 +86,20 @@ class MQTTClientCore:
             self.ca_path = cfg.CA_PATH
         except:
             self.ca_path = None
-            try:
-                self.ssl_port = cfg.SSL_PORT
-                self.ssl_host = cfg.SSL_HOST
-            except:
-                self.ssl_port = None
-                self.ssl_host = None
+        try:
+            self.ssh_port = cfg.SSH_PORT
+            self.ssh_host = cfg.SSH_HOST
+        except:
+            self.ssh_port = None
+            self.ssh_host = None
+        try:
+            self.username = self.cfg.USERNAME
+        except:
+            self.username = None
+        try:
+            self.password = self.cfg.PASSWORD
+        except:
+            self.password = None
 
         logging.basicConfig(filename=self.logfile, level=self.loglevel,
                             format=LOGFORMAT)
@@ -109,6 +121,8 @@ class MQTTClientCore:
     def identify(self):
         self.mqttc.publish(self.clientbase + "version",
                             self.clientversion, qos=1, retain=self.persist)
+        self.mqttc.publish(self.clientbase + "core-version", self.coreversion, qos=1, retain=self.persist)
+        self.mqttc.publish(self.clientbase + "daemon-version", daemon_version(), qos=1, retain=self.persist)
 #        p = subprocess.Popen("curl ifconfig.me/forwarded", shell=True,
         p = subprocess.Popen("ip -f inet  addr show | tail -n 1 | cut -f 6 -d' ' | cut -f 1 -d'/'", shell=True,
                               stdout=subprocess.PIPE)
@@ -138,6 +152,8 @@ class MQTTClientCore:
 
     def on_disconnect( self, mself, obj, rc ):
         self.disconnecttime=datetime.datetime.now()
+        logging.info("MQTT disconnected: " + error_string(rc))
+        print "MQTT Disconnected"
 
     #On recipt of a message create a pynotification and show it
     def on_message( self, mself, obj, msg):
@@ -151,74 +167,71 @@ class MQTTClientCore:
             ( msg.payload == "request" )):
             self.identify()
 
+    def on_log(self, mself, obj, level, buffer):
+        logging.info(buffer)
+#TODO add level filtering here
+
     def mqtt_connect(self):
         if ( True != self.mqtt_connected ):
-            rc = 1
-            while ( rc ):
                 print "Attempting connection..."
-                if(self.ssl_port != None):
-                    print "Using ssl for security"
-                    self.sslpid = subprocess.Popen("ssh -f -n -N -L 127.0.0.1:%d:localhost:%d user@%s"
+                logging.info("Attempting connection.")
+                if(self.ssh_port != None):
+                    logging.info("Building SSH tunnel.")
+                    print "Using ssh for security"
+                    self.sshpid = subprocess.Popen("ssh -f -n -N -L 127.0.0.1:%d:localhost:%d user@%s"
                              % (self.ssh_port, self.mqtt_port, self.ssh_host),
                                  shell=True, close_fds=True)
                     self.mqtt_host = "localhost"
-                    self.mqtt_port = self.ssh
+                    self.mqtt_port = self.ssh_port
                 else: 
-                    self.sslpid = None
+                    self.sshpid = None
                 if(self.ca_path != None):
+                    logging.info("Assigning certificate for security.")
                     print "Using CA for security"
                     self.mqttc.tls_set(self.ca_path)
-
+                if self.username != None:
+                    if self.password != None:
+                        logging.info("Using username for login")
+                        print "Logging in as " + self.username + " with password."
+                        self.mqttc.username_pw_set(self.username, self.password)
+                    else:
+                        logging.info("Using password for login")
+                        print "Logging in as " + self.username
+                        self.mqttc.username_pw_set(self.username)
                 self.mqttc.will_set(self.clientbase, "disconnected", qos=1, retain=self.persist)
                 
                 #define the mqtt callbacks
                 self.mqttc.on_message = self.on_message
                 self.mqttc.on_connect = self.on_connect
                 self.mqttc.on_disconnect = self.on_disconnect
+                self.mqttc.on_log = self.on_log
 
                 #connect
-                rc = self.mqttc.connect(self.mqtthost, self.mqttport,
+                self.mqttc.connect_async(self.mqtthost, self.mqttport,
                                         self.mqtttimeout)
-                if rc != 0:
-                    logging.info("Connection failed with error code %s, Retrying",
-                                 rc)
-                    print ("Connection failed with error code %s, Retrying in 30 seconds.", rc)
-                    time.sleep(30)
-                else:
-                    print "Connect initiated OK"
-
 
     def mqtt_disconnect(self):
         if ( self.mqtt_connected ):
             self.mqtt_connected = False
-            logging.info("MQTT disconnected")
-            print "MQTT Disconnected"
+            logging.info("MQTT disconnecting")
+            print "MQTT Disconnecting"
             self.mqttc.publish ( self.clientbase + "status" , "offline", qos=1, retain=self.persist )
             self.mqttc.disconnect()
             try:
-                os.kill(self.sslpid, 15) # 15 = SIGTERM
+                logging.info("Destroying SSH tunnel.")
+                print "Destroying SSH tunnel."
+                os.kill(self.sshpid, 15) # 15 = SIGTERM
             except:
                 print "PID invalid"
-
 
     def cleanup(self, signum, frame):
         self.running = False
         self.mqtt_disconnect()
         sys.exit(signum)
 
-
     def main_loop(self):
         self.mqtt_connect()
-        self.mqttc.loop()
-        while True:
-            if ( self.mqtt_connected ):
-                rc = self.mqttc.loop()
-                if rc != 0:
-                    self.mqtt_connected = False
-                    print "Stalling for 5 seconds to allow broker connection to time out."
-                    time.sleep(5)
-                    self.mqtt_connect()
-                    self.mqttc.loop()
+        self.mqttc.loop_forever()
 
 
 def main(daemon):

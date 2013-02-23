@@ -33,18 +33,29 @@ class MyMQTTClientCore(MQTTClientCore):
         self.counties = self.cfg.COUNTIES
         self.interval = self.cfg.INTERVAL
         self.basetopic = self.cfg.BASE_TOPIC
-    
-        self.t = threading.Thread(target=self.do_thread_loop)
-        self.t.start()
+
+        self.previous = dict()
 
     def on_connect(self, mself, obj, rc):
         MQTTClientCore.on_connect(self, mself, obj, rc)
         self.mqttc.subscribe(self.watchtopic, qos=2)
+        self.mqttc.subscribe("/raw/clock/minute")
 
-#TODO change to detect and announce changes in alert status!!!!!!!
+
+    def on_message(self, mself, obj, msg):
+        MQTTClientCore.on_message(self, mself, obj, msg)
+        if (msg.topic == self.watchtopic):
+            if (msg.payload == "trigger"):
+                self.t = threading.Thread(target=self.do_thread_loop)
+                self.t.start()
+        if (msg.topic == "/raw/clock/minute"):
+            if (msg.payload == "5"):
+                self.t = threading.Thread(target=self.do_thread_loop)
+                self.t.start()
+
     def do_thread_loop(self):
         alerts = nws.Alerts()
-        while ( self.running ):
+        if ( self.running ):
             if ( self.mqtt_connected ):
                 for location in self.counties:
                     print "Querrying for ", location.county, " county ", location.state
@@ -53,11 +64,13 @@ class MyMQTTClientCore(MQTTClientCore):
                         result = alerts.activefor_county(location)
                         self.mqttc.publish( self.basetopic + location.state + "/" + location.county + "/alert", str(result), qos = 0, retain = True )
                         self.mqttc.publish( self.basetopic + location.state + "/" + location.county + "/time", time.strftime( "%x %X" ), qos = 0, retain = True)
+                        if (result != self.previous[location]):
+                            self.mqttc.publish( self.basetopic + location.state + "/" + location.county + "/new", "true", qos = 0, retain = False)
+                        self.previous[location.state + ":" + location.county] = result
                     except:
                         print "error in weatheralerts."
                 if ( self.interval ):
                     print "Waiting ", self.interval, " minutes for next update."
-                    time.sleep(self.interval*60)
 		    pass
 
 
