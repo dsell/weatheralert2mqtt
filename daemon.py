@@ -3,6 +3,10 @@
 import sys, os, time, atexit
 from signal import SIGTERM 
 
+
+DAEMONVERSION = 0.3
+
+
 class Daemon:
 	"""
 	A generic daemon class.
@@ -129,5 +133,5 @@ class Daemon:
 		"""
 
 def daemon_version():
-    return "0.2"
+    return DAEMONVERSION
 

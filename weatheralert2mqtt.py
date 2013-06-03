@@ -13,7 +13,7 @@ __copyright__ = "Copyright (C) Dennis Sell"
 
 
 APPNAME = "weatheralert2mqtt"
-VERSION = "0.10"
+VERSION = "0.12"
 WATCHTOPIC = "/raw/" + APPNAME + "/command"
 
 
@@ -62,7 +62,7 @@ class MyMQTTClientCore(MQTTClientCore):
                     try:
                         result = "Failed to retreive"
                         result = alerts.activefor_county(location)
-                        self.mqttc.publish( self.basetopic + location.state + "/" + location.county + "/alert", str(result), qos = 0, retain = True )
+                        self.mqttc.publish( self.basetopic + location.state + "/" + location.county + "/alert", str(result).strip().replace('\l', ',').replace('\n', ',').replace('\r', ',').replace('\t', ','), qos = 0, retain = True )
                         self.mqttc.publish( self.basetopic + location.state + "/" + location.county + "/time", time.strftime( "%x %X" ), qos = 0, retain = True)
                         if (result != self.previous[location]):
                             self.mqttc.publish( self.basetopic + location.state + "/" + location.county + "/new", "true", qos = 0, retain = False)

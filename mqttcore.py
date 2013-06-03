@@ -15,6 +15,7 @@ __copyright__ = "Copyright (C) Dennis Sell"
 import sys
 import os
 import mosquitto
+from mosquitto import error_string
 import socket
 import time
 import subprocess
@@ -25,7 +26,8 @@ import datetime
 from daemon import daemon_version
 
 
-COREVERSION = 0.3
+COREVERSION = 0.6
+
 
 class MQTTClientCore:
     """
@@ -80,7 +82,7 @@ class MQTTClientCore:
         self.mqtthost = self.cfg.MQTT_HOST
         self.mqttport = self.cfg.MQTT_PORT
         self.mqtttimeout = 60  # get from config file  TODO
-        self.logfile = self.cfg.LOGFILE
+        self.logfile = os.path.expanduser(self.cfg.LOGFILE)
         self.loglevel = self.cfg.LOGLEVEL
         try:
             self.ca_path = cfg.CA_PATH
@@ -134,10 +136,12 @@ class MQTTClientCore:
         self.mqttc.publish(self.clientbase + "extip", extip.strip('\n'), qos=1, retain=self.persist)
         self.mqttc.publish(self.clientbase + "pid", os.getpid(), qos=1, retain=self.persist)
         self.mqttc.publish(self.clientbase + "status", "online", qos=1, retain=self.persist)
+        self.mqttc.publish(self.clientbase + "class", self.clienttype, qos=1, retain=self.persist)
         self.mqttc.publish(self.clientbase + "start", str(self.starttime), qos=1, retain=self.persist)
         self.mqttc.publish(self.clientbase + "disconnecttime", str(self.disconnecttime), qos=1, retain=self.persist)
         self.mqttc.publish(self.clientbase + "connecttime", str(self.connecttime), qos=1, retain=self.persist)
         self.mqttc.publish(self.clientbase + "count", self.connectcount, qos=1, retain=self.persist)
+#add broker port connection type?
 
     #define what happens after connection
     def on_connect(self, mself, obj, rc):
@@ -198,7 +202,7 @@ class MQTTClientCore:
                         logging.info("Using password for login")
                         print "Logging in as " + self.username
                         self.mqttc.username_pw_set(self.username)
-                self.mqttc.will_set(self.clientbase, "disconnected", qos=1, retain=self.persist)
+                self.mqttc.will_set(self.clientbase + "/status", "disconnected", qos=1, retain=self.persist)
                 
                 #define the mqtt callbacks
                 self.mqttc.on_message = self.on_message
