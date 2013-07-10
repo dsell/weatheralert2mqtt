@@ -23,6 +23,7 @@ import logging
 import signal
 from config import Config
 import datetime
+from daemon import daemon_version
 
 
 COREVERSION = 0.8
@@ -161,6 +162,7 @@ class MQTTClientCore:
 
     def on_disconnect( self, mself, obj, rc ):
         self.disconnecttime=datetime.datetime.now()
+        self.mqtt_connected = False
         logging.info("MQTT disconnected: " + error_string(rc))
         print "MQTT Disconnected"
 

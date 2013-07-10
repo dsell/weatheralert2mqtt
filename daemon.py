@@ -1,4 +1,13 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# vim tabstop=4 expandtab shiftwidth=4 softtabstop=4
+
+#
+# daemon - Provides a wrapper for daemonizing projects.
+#
+#
+
+
 
 import sys, os, time, atexit
 from signal import SIGTERM 
