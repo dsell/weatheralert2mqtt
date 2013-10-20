@@ -26,7 +26,7 @@ import datetime
 from daemon import daemon_version
 
 
-COREVERSION = 0.9
+COREVERSION = 0.10
 
 
 class MQTTClientCore:
@@ -66,7 +66,6 @@ class MQTTClientCore:
             from daemon import daemon_version
             self.clientname = appname
             self.persist = False
-        self.clientbase = "/clients/" + self.clientname + "/"
         LOGFORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 
         #TODO  need to deal with no config file existing!!!
@@ -99,6 +98,14 @@ class MQTTClientCore:
         except:
             self.ssh_port = None
             self.ssh_host = None
+        try:
+            self.basename = cfg.BASENAME
+        except:
+            self.basename = ""
+        try:
+            self.clientbase = cfg.CLIENTBASE
+        except:
+            self.clientbase = "/clients/" + self.clientname + "/"
         try:
             self.username = self.cfg.USERNAME
         except:
