@@ -26,7 +26,7 @@ import datetime
 from daemon import daemon_version
 
 
-COREVERSION = 0.10
+COREVERSION = 0.11
 
 
 class MQTTClientCore:
@@ -99,11 +99,11 @@ class MQTTClientCore:
             self.ssh_port = None
             self.ssh_host = None
         try:
-            self.basename = cfg.BASENAME
+            self.basetopic = cfg.BASENAME
         except:
-            self.basename = ""
+            self.basetopic = "/raw/" + appname
         try:
-            self.clientbase = cfg.CLIENTBASE
+            self.clientbase = self.cfg.CLIENTBASE
         except:
             self.clientbase = "/clients/" + self.clientname + "/"
         try:
@@ -135,6 +135,7 @@ class MQTTClientCore:
     def status(self, text):
         self.mqttc.publish(self.basetopic + "/status", text, qos=0, retain = False)
         logging.info(text)
+        print text
 
     def identify(self):
         self.mqttc.publish(self.clientbase + "version",
@@ -145,8 +146,8 @@ class MQTTClientCore:
 #        p = subprocess.Popen("curl ifconfig.me/forwarded", shell=True,
         p = subprocess.Popen("ip -f inet  addr show | tail -n 1 | cut -f 6 -d' ' | cut -f 1 -d'/'", shell=True,
                               stdout=subprocess.PIPE)
-        ip = p.stdout.readline()
-        self.mqttc.publish(self.clientbase + "locip", ip.strip('\n'), qos=1, retain=self.persist)
+        self.myip = p.stdout.readline().strip()
+        self.mqttc.publish(self.clientbase + "locip", self.myip, qos=1, retain=self.persist)
         p = subprocess.Popen("curl -s ifconfig.me/ip", shell=True,
                              stdout=subprocess.PIPE)
         extip = p.stdout.readline()
